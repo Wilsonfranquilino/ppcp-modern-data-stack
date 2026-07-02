@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: metalplan-postgres
+    environment:
+      POSTGRES_USER: metalplan
+      POSTGRES_PASSWORD: metalplan123
+      POSTGRES_DB: metalplan_dw
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "metalplan"]
+      interval: 10s
+      retries: 5
+    networks:
+      - metalplan-net
+
+  metabase:
+    image: metabase/metabase:v0.50.0
+    container_name: metalplan-metabase
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - metalplan-net
+
+  jupyter:
+    image: jupyter/datascience-notebook:latest
+    container_name: metalplan-jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      JUPYTER_TOKEN: "metalplan"
+    volumes:
+      - ../notebooks:/home/jovyan/notebooks
+      - ../data:/home/jovyan/data
+    networks:
+      - metalplan-net
+
+volumes:
+  postgres-data:
+
+networks:
+  metalplan-net:
+    driver: bridge
